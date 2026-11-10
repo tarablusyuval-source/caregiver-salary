@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Caregiver Pay">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Caregiver Salary Calculator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f766e'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'%3E%E2%82%AA%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230f766e'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='Arial'%3E%E2%82%AA%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --primary: #0f766e;
+    --primary-dark: #115e59;
+    --primary-light: #ccfbf1;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #cbd5e1;
+    --error: #dc2626;
+    --error-bg: #fef2f2;
+    --minus: #b91c1c;
+    --plus: #15803d;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.45;
+    /* Room for the sticky bottom bar */
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: calc(18px + env(safe-area-inset-top)) 16px 18px;
+    text-align: center;
+  }
+  header h1 { margin: 0; font-size: 1.3rem; }
+  header p { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.9; }
+  main { max-width: 480px; margin: 0 auto; padding: 12px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+    color: var(--primary-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 6px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 0.82rem; }
+
+  .input-wrap { position: relative; }
+  .input-wrap .prefix {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); pointer-events: none; font-size: 1rem;
+  }
+  input {
+    width: 100%;
+    min-height: 48px;
+    font-size: 16px; /* >=16px prevents iOS zoom on focus */
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .input-wrap input { padding-left: 30px; }
+  input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+  input.invalid { border-color: var(--error); background: var(--error-bg); }
+  .comment { margin-top: 8px; }
+  .error { color: var(--error); font-size: 0.85rem; margin-top: 4px; min-height: 0; }
+  .error:empty { display: none; }
+  .row-2 { display: grid; grid-template-columns: 1fr; gap: 0; }
+  .per-sat-note { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+  /* Results summary */
+  .summary { font-variant-numeric: tabular-nums; }
+  .line { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 0.97rem; }
+  .line .label { color: var(--text); }
+  .line .amount { white-space: nowrap; font-weight: 600; }
+  .line .sub { display: block; font-size: 0.82rem; color: var(--muted); font-weight: 400; word-break: break-word; }
+  .line.minus .amount { color: var(--minus); }
+  .line.plus .amount { color: var(--plus); }
+  .line.total { border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 10px; font-weight: 700; }
+  .final {
+    margin-top: 12px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .final .final-label { font-size: 0.85rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.9; }
+  .final .final-amount { font-size: 2rem; font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .final.negative { background: var(--minus); }
+  .final .final-note { font-size: 0.85rem; margin-top: 4px; }
+  .final .final-note:empty { display: none; }
+  .summary-error {
+    background: var(--error-bg); color: var(--error); border-radius: 10px;
+    padding: 12px; font-weight: 600; text-align: center;
+  }
+
+  /* Buttons */
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  button {
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:active:not(:disabled) { background: var(--primary-dark); }
+  .btn-whatsapp { background: #25d366; color: #073b1c; }
+  .btn-secondary { background: #e2e8f0; color: var(--text); }
+  .btn-reset { background: transparent; color: var(--minus); border: 1.5px solid #fecaca; grid-column: 1 / -1; }
+  .full { grid-column: 1 / -1; }
+  [hidden] { display: none !important; }
+
+  /* Sticky bottom bar with the final amount */
+  .sticky-bar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.08);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    z-index: 10;
+  }
+  .sticky-inner {
+    max-width: 480px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: none; width: 100%; color: var(--text); min-height: 48px; padding: 0;
+  }
+  .sticky-inner .s-label { font-size: 0.85rem; color: var(--muted); text-align: left; }
+  .sticky-inner .s-amount { font-size: 1.4rem; font-weight: 800; color: var(--primary-dark); font-variant-numeric: tabular-nums; }
+  .sticky-inner .s-amount.negative { color: var(--minus); }
+  .sticky-inner .s-amount.err { color: var(--error); font-size: 1rem; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: #0f172a; color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 0.95rem; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 20;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (min-width: 560px) {
+    main { padding: 20px 12px; }
+    header h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Caregiver Salary Calculator</h1>
+  <p>Monthly payment in ₪ (ILS)</p>
+</header>
+
+<main>
+  <form id="calc-form" novalidate autocomplete="off">
+    <!-- Period -->
+    <section class="card">
+      <h2>Period</h2>
+      <div class="field">
+        <label for="month">Month</label>
+        <input type="month" id="month" name="month">
+      </div>
+    </section>
+
+    <!-- Salary -->
+    <section class="card">
+      <h2>Salary</h2>
+      <div class="field">
+        <label for="baseSalary">Base Salary</label>
+        <div class="input-wrap"><span class="prefix">₪</span>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="baseSalary" data-type="money" placeholder="0.00"></div>
+        <div class="error" id="baseSalary-error" aria-live="polite"></div>
+      </div>
+      <div class="field">
+        <label for="saturdays">Number of Saturdays</label>
+        <input type="text" inputmode="numeric" enterkeyhint="next" id="saturdays" data-type="count" placeholder="0">
+        <div class="error" id="saturdays-error" aria-live="polite"></div>
+      </div>
+      <div class="field">
+        <label for="weekendPay">Weekend Pay <span class="hint">per Saturday</span></label>
+        <div class="input-wrap"><span class="prefix">₪</span>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="weekendPay" data-type="money" placeholder="0.00"></div>
+        <div class="error" id="weekendPay-error" aria-live="polite"></div>
+      </div>
+      <div class="field">
+        <label for="pocketMoney">Pocket Money <span class="hint">per Saturday</span></label>
+        <div class="input-wrap"><span class="prefix">₪</span>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="pocketMoney" data-type="money" placeholder="0.00"></div>
+        <div class="error" id="pocketMoney-error" aria-live="polite"></div>
+      </div>
+      <div class="field">
+        <label for="foodMoney">Food Money <span class="hint">per Saturday</span></label>
+        <div class="input-wrap"><span class="prefix">₪</span>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="foodMoney" data-type="money" placeholder="0.00"></div>
+        <div class="error" id="foodMoney-error" aria-live="polite"></div>
+        <div class="per-sat-note" id="perSatNote"></div>
+      </div>
+    </section>
+
+    <!-- Deductions -->
+    <section class="card">
+      <h2>Deductions</h2>
+      <div class="field">
+        <label for="agencyPaid">Amount Already Paid by Agency</label>
+        <div class="input-wrap"><span class="prefix">₪</span>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="agencyPaid" data-type="money" placeholder="0.00"></div>
+        <div class="error" id="agencyPaid-error" aria-live="polite"></div>
+      </div>
+      <div class="field">
+        <label for="earlyAllowance">Early Allowance / Advance <span class="hint">optional</span></label>
+        <div class="input-wrap"><span class="prefix">₪</span>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="earlyAllowance" data-type="money" placeholder="0.00"></div>
+        <div class="error" id="earlyAllowance-error" aria-live="polite"></div>
+        <input type="text" class="comment" id="earlyComment" enterkeyhint="next" maxlength="200"
+               placeholder="Comment (e.g. advance given on 05/11)" aria-label="Early Allowance comment">
+      </div>
+    </section>
+
+    <!-- Additional expenses -->
+    <section class="card">
+      <h2>Additional Expenses</h2>
+      <div class="field">
+        <label for="additionalExpenses">Additional Expenses <span class="hint">optional, added to payment</span></label>
+        <div class="input-wrap"><span class="prefix">₪</span>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="additionalExpenses" data-type="money" placeholder="0.00"></div>
+        <div class="error" id="additionalExpenses-error" aria-live="polite"></div>
+        <input type="text" class="comment" id="expensesComment" enterkeyhint="done" maxlength="200"
+               placeholder="Description (e.g. pharmacy, taxi)" aria-label="Additional Expenses description">
+      </div>
+    </section>
+  </form>
+
+  <!-- Results -->
+  <section class="card" id="results" aria-live="polite">
+    <h2 id="summaryTitle">Calculation Summary</h2>
+    <div id="summary" class="summary"></div>
+    <div class="actions">
+      <button type="button" class="btn-primary" id="copyBtn">📋 Copy</button>
+      <button type="button" class="btn-secondary" id="shareBtn">📤 Share</button>
+      <button type="button" class="btn-whatsapp full" id="whatsappBtn">💬 Send via WhatsApp</button>
+      <button type="button" class="btn-reset" id="resetBtn">↺ Clear / Reset</button>
+    </div>
+  </section>
+</main>
+
+<div class="sticky-bar">
+  <button type="button" class="sticky-inner" id="stickyBtn" aria-label="Go to calculation summary">
+    <span class="s-label">Final amount<br>to pay</span>
+    <span class="s-amount" id="stickyAmount">₪0.00</span>
+  </button>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var MONEY_FIELDS = ['baseSalary', 'weekendPay', 'pocketMoney', 'foodMoney',
+                      'agencyPaid', 'earlyAllowance', 'additionalExpenses'];
+  var COUNT_FIELDS = ['saturdays'];
+  var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                     'August', 'September', 'October', 'November', 'December'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var form = $('calc-form');
+  var lastResult = null; // latest valid calculation, used for sharing
+
+  // ---------- Formatting ----------
+  // Formats a number as "₪1,234.56" (negative values as "-₪1,234.56").
+  function formatILS(value) {
+    var abs = Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (value < 0 ? '-₪' : '₪') + abs;
+  }
+
+  function currentMonthValue() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  function monthLabel(value) {
+    var m = /^(\d{4})-(\d{2})$/.exec(value || '');
+    return m ? MONTH_NAMES[parseInt(m[2], 10) - 1] + ' ' + m[1] : '';
+  }
+
+  // ---------- Validation / parsing ----------
+  // Money: empty -> 0; otherwise a non-negative number with up to 2 decimals.
+  // Accepts thousands separators ("1,500") and "," as decimal separator ("120,5").
+  // Returns {value} or {error}.
+  function parseMoney(raw) {
+    var s = raw.replace(/\s/g, '');
+    if (s === '') return { value: 0 };
+    if (s.charAt(0) === '-') return { error: 'Negative amounts are not allowed.' };
+    if (/^\d{1,3}(,\d{3})+(\.\d*)?$/.test(s)) s = s.replace(/,/g, ''); // thousands separators
+    else s = s.replace(',', '.');                                       // decimal comma
+    if (!/^\d+(\.\d*)?$|^\.\d+$/.test(s)) return { error: 'Please enter numbers only (e.g. 1500 or 1500.50).' };
+    if (/\.\d{3,}$/.test(s)) return { error: 'Use at most 2 decimal places.' };
+    return { value: parseFloat(s) };
+  }
+
+  // Count: empty -> 0; otherwise a non-negative whole number.
+  function parseCount(raw) {
+    var s = raw.trim();
+    if (s === '') return { value: 0 };
+    if (s.charAt(0) === '-') return { error: 'Number of Saturdays cannot be negative.' };
+    if (!/^\d+$/.test(s)) return { error: 'Please enter a whole number (e.g. 4).' };
+    return { value: parseInt(s, 10) };
+  }
+
+  // Reads every input, shows/clears per-field errors and returns the values.
+  function readInputs() {
+    var values = {};
+    var valid = true;
+
+    function check(id, parser) {
+      var input = $(id);
+      var res = parser(input.value);
+      $(id + '-error').textContent = res.error || '';
+      input.classList.toggle('invalid', !!res.error);
+      input.setAttribute('aria-invalid', res.error ? 'true' : 'false');
+      if (res.error) valid = false;
+      else values[id] = res.value;
+    }
+
+    MONEY_FIELDS.forEach(function (id) { check(id, parseMoney); });
+    COUNT_FIELDS.forEach(function (id) { check(id, parseCount); });
+
+    values.month = $('month').value;
+    values.earlyComment = $('earlyComment').value.trim();
+    values.expensesComment = $('expensesComment').value.trim();
+    return { valid: valid, values: values };
+  }
+
+  // ---------- Calculation ----------
+  // Rounds to whole agorot to avoid floating-point artifacts (e.g. 0.1 + 0.2).
+  function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+
+  function calculate(v) {
+    var perSaturday  = round2(v.weekendPay + v.pocketMoney + v.foodMoney);
+    var saturdaysPay = round2(v.saturdays * perSaturday);
+    var totalSalary  = round2(v.baseSalary + saturdaysPay);
+    // Final = Total Salary - Agency Paid - Early Allowance + Additional Expenses
+    var finalAmount  = round2(totalSalary - v.agencyPaid - v.earlyAllowance + v.additionalExpenses);
+    return {
+      month: v.month,
+      baseSalary: v.baseSalary,
+      saturdays: v.saturdays,
+      perSaturday: perSaturday,
+      saturdaysPay: saturdaysPay,
+      totalSalary: totalSalary,
+      agencyPaid: v.agencyPaid,
+      earlyAllowance: v.earlyAllowance,
+      earlyComment: v.earlyComment,
+      additionalExpenses: v.additionalExpenses,
+      expensesComment: v.expensesComment,
+      finalAmount: finalAmount
+    };
+  }
+
+  // ---------- Rendering ----------
+  function el(tag, className, text) {
+    var e = document.createElement(tag);
+    if (className) e.className = className;
+    if (text != null) e.textContent = text; // textContent keeps user comments safe
+    return e;
+  }
+
+  function addLine(parent, cls, label, amount, sub) {
+    var row = el('div', 'line ' + (cls || ''));
+    var left = el('span', 'label', label);
+    if (sub) left.appendChild(el('span', 'sub', sub));
+    row.appendChild(left);
+    row.appendChild(el('span', 'amount', amount));
+    parent.appendChild(row);
+  }
+
+  function render(r) {
+    var box = $('summary');
+    box.textContent = '';
+    var label = monthLabel(r.month);
+    $('summaryTitle').textContent = label ? 'Summary – ' + label : 'Calculation Summary';
+
+    addLine(box, '', 'Base Salary', formatILS(r.baseSalary));
+    addLine(box, 'plus', 'Saturdays: ' + r.saturdays + ' × ' + formatILS(r.perSaturday),
+            '+' + formatILS(r.saturdaysPay));
+    addLine(box, 'total', 'Total Salary', formatILS(r.totalSalary));
+    addLine(box, 'minus', 'Agency Paid', '-' + formatILS(r.agencyPaid));
+    addLine(box, 'minus', 'Early Allowance', '-' + formatILS(r.earlyAllowance), r.earlyComment);
+    addLine(box, 'plus', 'Additional Expenses', '+' + formatILS(r.additionalExpenses), r.expensesComment);
+
+    var negative = r.finalAmount < 0;
+    var final = el('div', 'final' + (negative ? ' negative' : ''));
+    final.appendChild(el('div', 'final-label', 'Final amount to pay'));
+    final.appendChild(el('div', 'final-amount', formatILS(r.finalAmount)));
+    final.appendChild(el('div', 'final-note',
+      negative ? 'Overpaid – the caregiver received ' + formatILS(-r.finalAmount) + ' more than due.' : ''));
+    box.appendChild(final);
+
+    $('perSatNote').textContent = 'Per Saturday: ' + formatILS(r.perSaturday);
+
+    var sticky = $('stickyAmount');
+    sticky.textContent = formatILS(r.finalAmount);
+    sticky.className = 's-amount' + (negative ? ' negative' : '');
+  }
+
+  function renderError() {
+    var box = $('summary');
+    box.textContent = '';
+    box.appendChild(el('div', 'summary-error', 'Please fix the highlighted fields to see the result.'));
+    $('perSatNote').textContent = '';
+    var sticky = $('stickyAmount');
+    sticky.textContent = 'Fix errors';
+    sticky.className = 's-amount err';
+  }
+
+  function setShareEnabled(enabled) {
+    ['copyBtn', 'shareBtn', 'whatsappBtn'].forEach(function (id) { $(id).disabled = !enabled; });
+  }
+
+  // Main update: validate -> calculate -> render. Never shows NaN.
+  function update() {
+    var input = readInputs();
+    if (!input.valid) {
+      lastResult = null;
+      renderError();
+      setShareEnabled(false);
+      return;
+    }
+    lastResult = calculate(input.values);
+    render(lastResult);
+    setShareEnabled(true);
+  }
+
+  // ---------- Sharing ----------
+  // Builds a plain-text summary. `bold` wraps the final line in *...* (WhatsApp bold).
+  function buildShareText(r, bold) {
+    var lines = [];
+    var label = monthLabel(r.month);
+    lines.push('Caregiver Payment' + (label ? ' – ' + label : ''));
+    lines.push('');
+    lines.push('Base Salary: ' + formatILS(r.baseSalary));
+    if (r.saturdays > 0 || r.perSaturday > 0) {
+      lines.push('Saturdays: ' + r.saturdays + ' × ' + formatILS(r.perSaturday) + ' = +' + formatILS(r.saturdaysPay));
+    }
+    lines.push('Total Salary: ' + formatILS(r.totalSalary));
+    lines.push('Agency Paid: -' + formatILS(r.agencyPaid));
+    if (r.earlyAllowance > 0 || r.earlyComment) {
+      lines.push('Early Allowance: -' + formatILS(r.earlyAllowance) + (r.earlyComment ? ' (' + r.earlyComment + ')' : ''));
+    }
+    if (r.additionalExpenses > 0 || r.expensesComment) {
+      lines.push('Additional Expenses: +' + formatILS(r.additionalExpenses) + (r.expensesComment ? ' (' + r.expensesComment + ')' : ''));
+    }
+    lines.push('');
+    var finalLine = 'FINAL AMOUNT TO PAY: ' + formatILS(r.finalAmount);
+    lines.push(bold ? '*' + finalLine + '*' : finalLine);
+    if (r.finalAmount < 0) lines.push('(Overpaid by ' + formatILS(-r.finalAmount) + ')');
+    return lines.join('\n');
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  // Copies text using the Clipboard API, with a fallback for http/file pages.
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      ok ? resolve() : reject(new Error('copy failed'));
+    });
+  }
+
+  $('copyBtn').addEventListener('click', function () {
+    if (!lastResult) return;
+    copyText(buildShareText(lastResult, false))
+      .then(function () { toast('Copied ✓'); })
+      .catch(function () { toast('Copy failed – please select and copy manually'); });
+  });
+
+  if (navigator.share) {
+    $('shareBtn').addEventListener('click', function () {
+      if (!lastResult) return;
+      navigator.share({ title: 'Caregiver Payment', text: buildShareText(lastResult, false) })
+        .catch(function () { /* user cancelled */ });
+    });
+  } else {
+    // Native share not available (e.g. desktop / non-https): hide it and let Copy fill the row.
+    $('shareBtn').hidden = true;
+    $('copyBtn').classList.add('full');
+  }
+
+  $('whatsappBtn').addEventListener('click', function () {
+    if (!lastResult) return;
+    var url = 'https://wa.me/?text=' + encodeURIComponent(buildShareText(lastResult, true));
+    window.open(url, '_blank', 'noopener');
+  });
+
+  // ---------- Reset ----------
+  function resetForm() {
+    form.reset();
+    $('month').value = currentMonthValue();
+    update();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  $('resetBtn').addEventListener('click', function () {
+    if (window.confirm('Clear all fields and start over?')) resetForm();
+  });
+
+  $('stickyBtn').addEventListener('click', function () {
+    $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // Enter moves to the next field on mobile keyboards instead of doing nothing.
+  form.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+    e.preventDefault();
+    var inputs = Array.prototype.slice.call(form.querySelectorAll('input'));
+    var next = inputs[inputs.indexOf(e.target) + 1];
+    if (next) next.focus(); else e.target.blur();
+  });
+
+  // Recalculate on every change.
+  form.addEventListener('input', update);
+  form.addEventListener('submit', function (e) { e.preventDefault(); });
+
+  $('month').value = currentMonthValue();
+  update();
+})();
+</script>
+</body>
+</html>
