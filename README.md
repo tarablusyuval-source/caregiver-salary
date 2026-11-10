@@ -12,6 +12,13 @@ Total Salary = Base Salary + Saturdays × (Weekend Pay + Pocket Money + Food Mon
 Final Amount = Total Salary − Agency Paid − Early Allowance + Additional Expenses
 ```
 
+## Defaults
+
+- **Month:** the previous month, since salary is paid for the month that just ended.
+- **Number of Saturdays:** counted automatically from the selected month. You can still edit it.
+- **Base Salary:** ₪6,500. **Per Saturday:** Weekend Pay ₪440 + Pocket Money ₪100 + Food Money ₪200.
+- **Clear / Reset** goes back to these defaults.
+
 ## Use
 
 - Open the live link on your phone and choose **Add to Home Screen**.

@@ -196,30 +196,31 @@
       <div class="field">
         <label for="baseSalary">Base Salary</label>
         <div class="input-wrap"><span class="prefix">₪</span>
-          <input type="text" inputmode="decimal" enterkeyhint="next" id="baseSalary" data-type="money" placeholder="0.00"></div>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="baseSalary" data-type="money" placeholder="0.00" value="6500"></div>
         <div class="error" id="baseSalary-error" aria-live="polite"></div>
       </div>
       <div class="field">
         <label for="saturdays">Number of Saturdays</label>
         <input type="text" inputmode="numeric" enterkeyhint="next" id="saturdays" data-type="count" placeholder="0">
         <div class="error" id="saturdays-error" aria-live="polite"></div>
+                <div class="per-sat-note" id="satAutoNote"></div>
       </div>
       <div class="field">
         <label for="weekendPay">Weekend Pay <span class="hint">per Saturday</span></label>
         <div class="input-wrap"><span class="prefix">₪</span>
-          <input type="text" inputmode="decimal" enterkeyhint="next" id="weekendPay" data-type="money" placeholder="0.00"></div>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="weekendPay" data-type="money" placeholder="0.00" value="440"></div>
         <div class="error" id="weekendPay-error" aria-live="polite"></div>
       </div>
       <div class="field">
         <label for="pocketMoney">Pocket Money <span class="hint">per Saturday</span></label>
         <div class="input-wrap"><span class="prefix">₪</span>
-          <input type="text" inputmode="decimal" enterkeyhint="next" id="pocketMoney" data-type="money" placeholder="0.00"></div>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="pocketMoney" data-type="money" placeholder="0.00" value="100"></div>
         <div class="error" id="pocketMoney-error" aria-live="polite"></div>
       </div>
       <div class="field">
         <label for="foodMoney">Food Money <span class="hint">per Saturday</span></label>
         <div class="input-wrap"><span class="prefix">₪</span>
-          <input type="text" inputmode="decimal" enterkeyhint="next" id="foodMoney" data-type="money" placeholder="0.00"></div>
+          <input type="text" inputmode="decimal" enterkeyhint="next" id="foodMoney" data-type="money" placeholder="0.00" value="200"></div>
         <div class="error" id="foodMoney-error" aria-live="polite"></div>
         <div class="per-sat-note" id="perSatNote"></div>
       </div>
@@ -301,9 +302,33 @@
     return (value < 0 ? '-₪' : '₪') + abs;
   }
 
-  function currentMonthValue() {
+  // Salary is paid for the previous month, so that is the default period.
+  function priorMonthValue() {
     var d = new Date();
+    d = new Date(d.getFullYear(), d.getMonth() - 1, 1); // handles January -> December of last year
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  // Counts the Saturdays in a "YYYY-MM" month (returns null if the value is invalid).
+  function countSaturdays(value) {
+    var m = /^(\d{4})-(\d{2})$/.exec(value || '');
+    if (!m) return null;
+    var year = parseInt(m[1], 10), month = parseInt(m[2], 10) - 1;
+    var days = new Date(year, month + 1, 0).getDate();
+    var count = 0;
+    for (var day = 1; day <= days; day++) {
+      if (new Date(year, month, day).getDay() === 6) count++;
+    }
+    return count;
+  }
+
+  // Fills "Number of Saturdays" from the selected month (it can still be edited by hand).
+  function applyMonthSaturdays() {
+    var month = $('month').value;
+    var count = countSaturdays(month);
+    if (count === null) { $('satAutoNote').textContent = ''; return; }
+    $('saturdays').value = String(count);
+    $('satAutoNote').textContent = count + ' Saturdays in ' + monthLabel(month) + ' (auto, editable)';
   }
 
   function monthLabel(value) {
@@ -542,14 +567,15 @@
 
   // ---------- Reset ----------
   function resetForm() {
-    form.reset();
-    $('month').value = currentMonthValue();
+    form.reset(); // restores the default rates from the HTML value attributes
+    $('month').value = priorMonthValue();
+    applyMonthSaturdays();
     update();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   $('resetBtn').addEventListener('click', function () {
-    if (window.confirm('Clear all fields and start over?')) resetForm();
+    if (window.confirm('Reset all fields to the defaults (previous month)?')) resetForm();
   });
 
   $('stickyBtn').addEventListener('click', function () {
@@ -565,11 +591,16 @@
     if (next) next.focus(); else e.target.blur();
   });
 
-  // Recalculate on every change.
-  form.addEventListener('input', update);
+  // Recalculate on every change; a new month also re-counts its Saturdays.
+  $('month').addEventListener('change', function () { applyMonthSaturdays(); update(); });
+  form.addEventListener('input', function (e) {
+    if (e.target.id === 'month') applyMonthSaturdays();
+    update();
+  });
   form.addEventListener('submit', function (e) { e.preventDefault(); });
 
-  $('month').value = currentMonthValue();
+  $('month').value = priorMonthValue();
+  applyMonthSaturdays();
   update();
 })();
 </script>
